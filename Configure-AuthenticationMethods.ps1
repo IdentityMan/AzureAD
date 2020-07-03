@@ -1,7 +1,8 @@
 <#
 .DESCRIPTION
     This script is able to change / provision the phone number of the end user used by MFA / SMS Signin
-
+    Written by: Pim Jacobs (https://identity-man.eu)
+    
 .PARAMETER Token Required <String>
     The token only string for a Bearer token.
 
