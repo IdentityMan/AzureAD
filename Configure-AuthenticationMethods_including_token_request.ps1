@@ -20,13 +20,13 @@
 
 .EXAMPLE
     To read current settings
-    Configure-MFAMethods.ps1 -Token <Intune graph.microsoft.com token> -UPN 'username@identity-man.eu'
+    Configure-MFAMethods.ps1 -UPN 'username@identity-man.eu'
 
     To update, add or delete settings
-    Configure-MFAMethods.ps1 -Token <Intune graph.microsoft.com token> -UPN 'username@identity-man.eu' -ActionType '<Add/Update/Delete>' -PhoneNumber '<+310612345678>' -PhoneType '<Mobile/AlternateMobile/Office>'
+    Configure-MFAMethods.ps1 -UPN 'username@identity-man.eu' -ActionType '<Add/Update/Delete>' -PhoneNumber '<+310612345678>' -PhoneType '<Mobile/AlternateMobile/Office>'
 
     To enable or disable the SMSSignIn feature (only when the user is allowed to use this feature).
-    Configure-MFAMethods.ps1 -Token <Intune graph.microsoft.com token> -UPN 'username@identity-man.eu' -SMSSignIn '<Enable/Disable>'
+    Configure-MFAMethods.ps1 -UPN 'username@identity-man.eu' -SMSSignIn '<Enable/Disable>'
 #>
 
 [CmdletBinding()]
@@ -45,6 +45,8 @@ Param (
     [ValidateSet("Enable", "Disable")]
     [String]$SMSSignIn
 )
+
+# =====================================================================================================================================
 
 #To request a token make sure you've installed the MSAL Module with the PS command Install-Module -Name MSAL.PS
 
@@ -108,7 +110,6 @@ function Test-TokenValidity {
 	}
 
 }
-
 
 $ErrorActionPreference = 'Stop';
 
