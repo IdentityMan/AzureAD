@@ -47,8 +47,8 @@ Param (
 )
 
 # Update this info
-$tenantDomain = 'insparklabs.onmicrosoft.com' # REQUIRED -> Change to your tenant domain (tenantname.onmicrosoft.com)
-$clientId = '8cda4289-8021-4b97-bc84-bf50bdc2b554' # REQUIRED -> Change to your AppID / ClientId
+$tenantDomain = 'tenantname.onmicrosoft.com' #Change to your tenant domain (tenantname.onmicrosoft.com)
+$clientId = '00000000-0000-0000-0000-000000000000' #Change to your AppID / ClientId
 
 # =====================================================================================================================================
 
