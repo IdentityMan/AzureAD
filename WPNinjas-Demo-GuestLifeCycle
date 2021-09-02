@@ -1,0 +1,46 @@
+#Retrieve variables from automation account
+$tenantId = Get-AutomationVariable -Name 'TenantID'
+$AppID = Get-AutomationVariable -Name 'ApplicationID'
+$AuthCertificate = Get-AutomationCertificate -Name 'WPNinjas Service Principal'
+
+#Connect to environment
+Connect-AzAccount -ServicePrincipal -Tenant $tenantId -ApplicationId $AppID -CertificateThumbprint $AuthCertificate.thumbprint
+Connect-AzureAD -TenantId $tenantId -ApplicationId $AppID -CertificateThumbprint $AuthCertificate.thumbprint
+
+#Retrieve all user and get todays current date
+$GuestUsers = Get-AzureADUser -All $true | where {(($_.usertype -like "guest") -or ($_.userPrincipalName -like "*#EXT#@*")) -and ($_.UserState -eq "Accepted")}
+$Today = Get-Date
+
+Foreach ($GuestUser in $GuestUsers) {
+    $UserGroupMembership = Get-AzureADUserMembership -ObjectId $GuestUser.ObjectId
+    $UserGroupMembership = $UserGroupMembership.count
+    If ($UserGroupMembership -eq '0') {
+        $userprincipalname = $GuestUser.mail
+        [string]$WorkspaceID = 'd4c05fa0-1652-45e8-9ed0-bda450c81ee2'
+        $QuerySignInCount = 'SigninLogs | where TimeGenerated > ago(60d) | where UserPrincipalName == "' + $UserPrincipalName + '" | order by TimeGenerated desc nulls last | limit 1'
+        $ResultsSignInCount = Invoke-AzOperationalInsightsQuery -WorkspaceId $WorkspaceID -Query $QuerySignInCount
+        $AADSigninDate = $ResultsSignInCount.Results.TimeGenerated
+        
+        if ($AADSigninDate -like "") {
+            $AADSigninDate = get-date
+            $AADSigninDate = $AADSigninDate.AddDays(-62)
+        }
+
+        #Gather differences
+        $DaysInactive = (New-TimeSpan -Start $AADSigninDate -End $Today).Days
+        #write-output "Account $UserPrincipalname is inactive for $DaysInactive days"
+
+        if (($DaysInactive -gt 30) -and ($DaysInactive -lt 60)) {
+            write-output "Account $UserPrincipalname is inactive for $DaysInactive days, disabling the account"
+            #Set-AzureADUser -ObjectId $guestuser.ObjectId -AccountEnabled $false
+        }
+
+        if ($DaysInactive -gt 60) {
+            write-output "Account $UserPrincipalname is inactive for $DaysInactive days, removing the account"
+            #Remove-AzureADUser -ObjectId $guestuser.ObjectId
+        }
+    }
+    Else {
+        write-output "Account $UserPrincipalname still has group memberships, skipping."
+    }
+}
