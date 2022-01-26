@@ -1,7 +1,14 @@
+#install and import required modules
 Install-Module Microsoft.Graph.Authentication -AllowClobber -Force
 Import-Module Microsoft.Graph.Authentication
+
+#Connect based on a service principal
 Connect-MgGraph -ClientId 00000000-0000-0000-0000-000000000000 -TenantId 00000000-0000-0000-0000-000000000000 -CertificateThumbprint 0000000000000000000000000000000000000000
 Select-MgProfile -Name "beta"
+
+#if you want to connect interactive, comment the above two lines and use the ones mentioned below
+#Connect-MgGraph -Scopes "UserAuthenticationMethod.Read.All"
+#Select-MgProfile -Name "beta"
 
 #import-csv file
 $users = Import-Csv -Path "C:\Temp\AuthMethodsImport.csv"  -Delimiter ","
