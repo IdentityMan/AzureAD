@@ -1,3 +1,4 @@
+Install-Module Microsoft.Graph.Authentication
 Connect-MgGraph -ClientId 00000000-0000-0000-0000-000000000000 -TenantId 00000000-0000-0000-0000-000000000000 -CertificateThumbprint 0000000000000000000000000000000000000000
 Select-MgProfile -Name "beta"
 
