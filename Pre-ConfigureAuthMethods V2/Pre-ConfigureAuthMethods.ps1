@@ -1,5 +1,5 @@
-#install and import required modules
-Install-Module Microsoft.Graph.Authentication -AllowClobber -Force
+#install Microsoft.Graph module and dependancies and import required modules
+Install-Module Microsoft.Graph -AllowClobber -Force
 Import-Module Microsoft.Graph.Authentication
 
 #Connect based on a service principal
