@@ -14,8 +14,8 @@ Select-MgProfile -Name "beta"
 $users = Import-Csv -Path "C:\Temp\AuthMethodsImport.csv"  -Delimiter ","
 
 Foreach ($User in $Users) {
-    Write-Host "Starting to set authentication methods for user" $user.upn -ForegroundColor Green
-    $results = Get-MgUserAuthenticationPhoneMethod -UserId $User.UPN
+    Write-Host "Configuring authentication methods for user" $user.upn -ForegroundColor Green
+    $results = Get-MgUserAuthenticationPhoneMethod -UserId $user.upn
 
     #Retrieve mobileresults from Results
     $mobileresult = $results | Where-Object {$_.phonetype -eq "Mobile"}
@@ -29,7 +29,7 @@ Foreach ($User in $Users) {
                     New-MgUserAuthenticationPhoneMethod -UserId $User.UPN -PhoneType Mobile -PhoneNumber $User.Mobile | Out-Null
                 }
                 Catch {
-                    Write-Host "Failed to update mobile method as it's the default method for" $user.upn -ForegroundColor Yellow
+                    Write-Host "Failed to update mobile authentication method as it's configured as the default for" $user.upn -ForegroundColor Yellow
                 }
             }
         }
@@ -45,7 +45,7 @@ Foreach ($User in $Users) {
                 Remove-MgUserAuthenticationPhoneMethod -UserId $User.UPN -PhoneAuthenticationMethodId $mobileresult.Id -Erroraction Stop
             }
             Catch {
-                Write-Host "Failed to delete mobile method as it's the default method for" $user.upn -ForegroundColor Yellow
+                Write-Host "Failed to delete mobile authentication method as it's configured as the default for" $user.upn -ForegroundColor Yellow
             }
 
         }
@@ -56,19 +56,24 @@ Foreach ($User in $Users) {
     
     #Reconfigure Alternatemobile field if a new value is presented.
     if ($User.AlternateMobile) {
-        if ($Alternatemobileresult.PhoneType -eq "AlternateMobile") {
-            if ($User.ForcedUpdate -eq $true) {
-                Try {
-                    Remove-MgUserAuthenticationPhoneMethod -UserId $User.UPN -PhoneAuthenticationMethodId $Alternatemobileresult.Id -Erroraction Stop
-                    New-MgUserAuthenticationPhoneMethod -UserId $User.UPN -PhoneType AlternateMobile -PhoneNumber $User.AlternateMobile | out-null
+        if ($User.mobile) {
+            if ($Alternatemobileresult.PhoneType -eq "AlternateMobile") {
+                if ($User.ForcedUpdate -eq $true) {
+                    Try {
+                        Remove-MgUserAuthenticationPhoneMethod -UserId $User.UPN -PhoneAuthenticationMethodId $Alternatemobileresult.Id -Erroraction Stop
+                        New-MgUserAuthenticationPhoneMethod -UserId $User.UPN -PhoneType AlternateMobile -PhoneNumber $User.AlternateMobile | out-null
+                    }
+                    Catch {
+                        Write-Host "Failed to update Alternate Mobile authentication method as it's configured as the default for" $user.upn -ForegroundColor Yellow
+                    }
                 }
-                Catch {
-                    Write-Host "Failed to update Alternate Mobile method as it's the default method for" $user.upn -ForegroundColor Yellow
-                }
+            }
+            Else {
+                New-MgUserAuthenticationPhoneMethod -UserId $User.UPN -PhoneType AlternateMobile -PhoneNumber $User.AlternateMobile | Out-Null
             }
         }
         Else {
-            New-MgUserAuthenticationPhoneMethod -UserId $User.UPN -PhoneType AlternateMobile -PhoneNumber $User.AlternateMobile | Out-Null
+            Write-Host "Failed to update Alternate Mobile method as Mobile method is mandatory and not set for" $user.upn -ForegroundColor Yellow
         }
     }
     
@@ -78,7 +83,7 @@ Foreach ($User in $Users) {
                 Remove-MgUserAuthenticationPhoneMethod -UserId $User.UPN -PhoneAuthenticationMethodId $Alternatemobileresult.Id -Erroraction Stop
             }
             Catch {
-                Write-Host "Failed to delete Alternate Mobile method as it's the default method for" $user.upn -ForegroundColor Yellow
+                Write-Host "Failed to delete Alternate Mobile authentication method as it's configured as the default for" $user.upn -ForegroundColor Yellow
             }
         }
     }
@@ -95,7 +100,7 @@ Foreach ($User in $Users) {
                     New-MgUserAuthenticationPhoneMethod -UserId $User.UPN -PhoneType Office -PhoneNumber $User.OfficePhone | Out-Null
                 }
                 Catch {
-                    Write-Host "Failed to update Office Phone method as it's the default method for" $user.upn -ForegroundColor Yellow
+                    Write-Host "Failed to update Office Phone authentication method as it's configured as the default for" $user.upn -ForegroundColor Yellow
                 }
             }
         }
@@ -110,7 +115,7 @@ Foreach ($User in $Users) {
                 Remove-MgUserAuthenticationPhoneMethod -UserId $User.UPN -PhoneAuthenticationMethodId $OfficePhoneResults.Id -Erroraction Stop
             }
             Catch {
-                Write-Host "Failed to delete Office Phone method as it's the default method for" $user.upn -ForegroundColor Yellow
+                Write-Host "Failed to delete Office Phone authentication method as it's configured as the default for" $user.upn -ForegroundColor Yellow
             }
         }
     }
