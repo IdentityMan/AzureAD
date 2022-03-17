@@ -7,7 +7,7 @@ Connect-MgGraph -ClientId 00000000-0000-0000-0000-000000000000 -TenantId 0000000
 Select-MgProfile -Name "beta"
 
 #if you want to connect interactive, comment the above two lines and use the ones mentioned below
-#Connect-MgGraph -Scopes "UserAuthenticationMethod.Read.All"
+#Connect-MgGraph -Scopes "UserAuthenticationMethod.ReadWrite.All"
 #Select-MgProfile -Name "beta"
 
 #import-csv file
