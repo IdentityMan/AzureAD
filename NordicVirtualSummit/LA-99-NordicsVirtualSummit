@@ -1,0 +1,285 @@
+{
+    "definition": {
+        "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+        "actions": {
+            "Compose_Variables": {
+                "inputs": {
+                    "AdaptiveCardReceivers": "Pim.Jacobs@jacobsaa.nl",
+                    "AdaptiveCardTitle": "Cleanup of expired client secrets or certificates is required!",
+                    "AdaptiveCardTitle2": "ACTION REQUIRED: Your Service Principal needs attention!"
+                },
+                "runAfter": {},
+                "type": "Compose"
+            },
+            "Main": {
+                "actions": {
+                    "Create_Job_RB-99-NordicsVirtualSummit": {
+                        "inputs": {
+                            "host": {
+                                "connection": {
+                                    "name": "@parameters('$connections')['azureautomation']['connectionId']"
+                                }
+                            },
+                            "method": "put",
+                            "path": "/subscriptions/@{encodeURIComponent('faaeca84-60af-4e98-8846-ebf0944a5fba')}/resourceGroups/@{encodeURIComponent('RG-Generic')}/providers/Microsoft.Automation/automationAccounts/@{encodeURIComponent('IdentityMan-Automation')}/jobs",
+                            "queries": {
+                                "runbookName": "RB-99-NordicsVirtualSummit",
+                                "wait": true,
+                                "x-ms-api-version": "2015-10-31"
+                            }
+                        },
+                        "runAfter": {},
+                        "type": "ApiConnection"
+                    },
+                    "For_each_App": {
+                        "actions": {
+                            "Condition": {
+                                "actions": {
+                                    "Post_adaptive_card_for_Already_Expired_secret_or_certificate": {
+                                        "inputs": {
+                                            "body": {
+                                                "messageBody": "{\n    \"type\": \"AdaptiveCard\",\n    \"body\": [\n        {\n            \"type\": \"TextBlock\",\n            \"size\": \"Large\",\n            \"weight\": \"Bolder\",\n            \"text\": \"@{outputs('Compose_Variables')['AdaptiveCardTitle']}\",\n            \"wrap\": true,\n            \"style\": \"heading\"\n        },\n        {\n            \"type\": \"TextBlock\",\n            \"wrap\": true,\n            \"text\": \"The application @{items('For_each_App')?['AppDisplayName']} has client secrets or certificates which are already expired.\",\n            \"weight\": \"Default\"\n        },\n        {\n            \"type\": \"TextBlock\",\n            \"text\": \"The following information has been detected for this app:\",\n            \"wrap\": true,\n            \"weight\": \"Bolder\"\n        },\n        {\n            \"type\": \"FactSet\",\n            \"facts\": [\n                {\n                    \"title\": \"Display Name:\",\n                    \"value\": \"@{items('For_each_App')?['AppDisplayName']}\"\n                },\n                {\n                    \"title\": \"Application ID:\",\n                    \"value\": \"@{items('For_each_App')?['AppId']}\"\n                },\n                {\n                    \"title\": \"Secret ID:\",\n                    \"value\": \"@{items('For_each_App')?['SecretId']}\"\n                },\n                {\n                    \"title\": \"Certificate ID:\",\n                    \"value\": \"@{items('For_each_App')?['CertificateId']}\"\n                },\n                {\n                    \"title\": \"Expiration Date:\",\n                    \"value\": \"@{items('For_each_App')?['Expires']}\"\n                }\n            ]\n        },\n        {\n            \"type\": \"TextBlock\",\n            \"wrap\": true,\n            \"text\": \"It's time to get your environment cleaned up, please click on the button below to go directly to the affected Service Principal and cleanup the expired secret(s) or certificate(s)!\"\n        }\n    ],\n    \"actions\": [\n        {\n            \"type\": \"Action.OpenUrl\",\n            \"title\": \"Go to the Service Principal\",\n            \"data\": false,\n            \"url\": \"https://portal.azure.com/#blade/Microsoft_AAD_RegisteredApps/ApplicationMenuBlade/Credentials/appId/@{items('For_each_App')?['AppId']}/isMSAApp/\",\n            \"iconUrl\": \"https://www.freeiconspng.com/uploads/rocket-icon-png-21.png\"\n        }\n    ],\n    \"$schema\": \"http://adaptivecards.io/schemas/adaptive-card.json\",\n    \"version\": \"1.4\"\n}",
+                                                "recipient": "@{outputs('Compose_Variables')['AdaptiveCardReceivers']}"
+                                            },
+                                            "host": {
+                                                "connection": {
+                                                    "name": "@parameters('$connections')['teams']['connectionId']"
+                                                }
+                                            },
+                                            "method": "post",
+                                            "path": "/v1.0/teams/conversation/adaptivecard/poster/Flow bot/location/@{encodeURIComponent('Chat with Flow bot')}"
+                                        },
+                                        "runAfter": {},
+                                        "type": "ApiConnection"
+                                    }
+                                },
+                                "else": {
+                                    "actions": {
+                                        "Post_adaptive_card_for_secret_or_certificate_which_is_due_to_expire": {
+                                            "inputs": {
+                                                "body": {
+                                                    "messageBody": "{\n    \"type\": \"AdaptiveCard\",\n    \"body\": [\n        {\n            \"type\": \"TextBlock\",\n            \"size\": \"Large\",\n            \"weight\": \"Bolder\",\n            \"text\": \"@{outputs('Compose_Variables')['AdaptiveCardTitle2']}\",\n            \"wrap\": true,\n            \"style\": \"heading\",\n            \"color\": \"Attention\"\n        },\n        {\n            \"type\": \"TextBlock\",\n            \"wrap\": true,\n            \"text\": \"The application @{items('For_each_App')?['AppDisplayName']} has expiring client secrets or certificates, it therefore urgently requires your attention.\",\n            \"weight\": \"Default\"\n        },\n        {\n            \"type\": \"TextBlock\",\n            \"text\": \"The following information has been detected for this app:\",\n            \"wrap\": true,\n            \"weight\": \"Bolder\"\n        },\n        {\n            \"type\": \"FactSet\",\n            \"facts\": [\n                {\n                    \"title\": \"Display Name:\",\n                    \"value\": \"@{items('For_each_App')?['AppDisplayName']}\"\n                },\n                {\n                    \"title\": \"Application ID:\",\n                    \"value\": \"@{items('For_each_App')?['AppId']}\"\n                },\n                {\n                    \"title\": \"Secret ID:\",\n                    \"value\": \"@{items('For_each_App')?['SecretId']}\"\n                },\n                {\n                    \"title\": \"Certificate ID:\",\n                    \"value\": \"@{items('For_each_App')?['CertificateId']}\"\n                },\n                {\n                    \"title\": \"Expiration Date:\",\n                    \"value\": \"@{items('For_each_App')?['Expires']}\"\n                }\n            ]\n        },\n        {\n            \"type\": \"TextBlock\",\n            \"wrap\": true,\n            \"text\": \"Please click on the button below to go directly to the affected Service Principal and make sure measurements are taken!\"\n        }\n    ],\n    \"actions\": [\n        {\n            \"type\": \"Action.OpenUrl\",\n            \"title\": \"Go to the Service Principal\",\n            \"data\": false,\n            \"url\": \"https://portal.azure.com/#blade/Microsoft_AAD_RegisteredApps/ApplicationMenuBlade/Credentials/appId/@{items('For_each_App')?['AppId']}/isMSAApp/\",\n            \"iconUrl\": \"https://www.freeiconspng.com/uploads/rocket-icon-png-21.png\"\n        }\n    ],\n    \"$schema\": \"http://adaptivecards.io/schemas/adaptive-card.json\",\n    \"version\": \"1.4\"\n}",
+                                                    "recipient": "@{outputs('Compose_Variables')['AdaptiveCardReceivers']}"
+                                                },
+                                                "host": {
+                                                    "connection": {
+                                                        "name": "@parameters('$connections')['teams']['connectionId']"
+                                                    }
+                                                },
+                                                "method": "post",
+                                                "path": "/v1.0/teams/conversation/adaptivecard/poster/Flow bot/location/@{encodeURIComponent('Chat with Flow bot')}"
+                                            },
+                                            "runAfter": {},
+                                            "type": "ApiConnection"
+                                        }
+                                    }
+                                },
+                                "expression": {
+                                    "and": [
+                                        {
+                                            "equals": [
+                                                "@items('For_each_app')?['AlreadyExpired']",
+                                                true
+                                            ]
+                                        }
+                                    ]
+                                },
+                                "runAfter": {},
+                                "type": "If"
+                            },
+                            "Delay_untill_next_for_each_for_2_seconds_(due_to_throttling)": {
+                                "inputs": {
+                                    "interval": {
+                                        "count": 5,
+                                        "unit": "Second"
+                                    }
+                                },
+                                "runAfter": {
+                                    "Condition": [
+                                        "Succeeded"
+                                    ]
+                                },
+                                "type": "Wait"
+                            }
+                        },
+                        "foreach": "@body('Parse_JSON_RB-99-NordicsVirtualSummit_Content')?['results']",
+                        "runAfter": {
+                            "Parse_JSON_RB-99-NordicsVirtualSummit_Content": [
+                                "Succeeded"
+                            ]
+                        },
+                        "runtimeConfiguration": {
+                            "concurrency": {
+                                "repetitions": 1
+                            }
+                        },
+                        "type": "Foreach"
+                    },
+                    "Get_blob_content_from_Job_Output": {
+                        "inputs": {
+                            "host": {
+                                "connection": {
+                                    "name": "@parameters('$connections')['azureblob']['connectionId']"
+                                }
+                            },
+                            "method": "get",
+                            "path": "/v2/datasets/@{encodeURIComponent(encodeURIComponent('AccountNameFromSettings'))}/GetFileContentByPath",
+                            "queries": {
+                                "inferContentType": false,
+                                "path": "/nvsjson/@{body('Parse_JSON_from_Job_output')?['blobfile']}",
+                                "queryParametersSingleEncoded": true
+                            }
+                        },
+                        "runAfter": {
+                            "Parse_JSON_from_Job_output": [
+                                "Succeeded"
+                            ]
+                        },
+                        "type": "ApiConnection"
+                    },
+                    "Get_job_output_RB-99-NordicsVirtualSummit": {
+                        "inputs": {
+                            "host": {
+                                "connection": {
+                                    "name": "@parameters('$connections')['azureautomation']['connectionId']"
+                                }
+                            },
+                            "method": "get",
+                            "path": "/subscriptions/@{encodeURIComponent('faaeca84-60af-4e98-8846-ebf0944a5fba')}/resourceGroups/@{encodeURIComponent('RG-Generic')}/providers/Microsoft.Automation/automationAccounts/@{encodeURIComponent('IdentityMan-Automation')}/jobs/@{encodeURIComponent(body('Create_Job_RB-99-NordicsVirtualSummit')?['properties']?['jobId'])}/output",
+                            "queries": {
+                                "x-ms-api-version": "2015-10-31"
+                            }
+                        },
+                        "runAfter": {
+                            "Create_Job_RB-99-NordicsVirtualSummit": [
+                                "Succeeded"
+                            ]
+                        },
+                        "type": "ApiConnection"
+                    },
+                    "Parse_JSON_RB-99-NordicsVirtualSummit_Content": {
+                        "inputs": {
+                            "content": "@json(decodeBase64(body('Get_blob_content_from_Job_Output')['$content']))",
+                            "schema": {
+                                "properties": {
+                                    "results": {
+                                        "items": [
+                                            {
+                                                "properties": {
+                                                    "AlreadyExpired": {
+                                                        "type": "boolean"
+                                                    },
+                                                    "AppDisplayName": {
+                                                        "type": "string"
+                                                    },
+                                                    "AppId": {
+                                                        "type": "string"
+                                                    },
+                                                    "CertificateID": {
+                                                        "type": "string"
+                                                    },
+                                                    "Expires": {
+                                                        "type": "string"
+                                                    },
+                                                    "SecretId": {
+                                                        "type": "string"
+                                                    }
+                                                },
+                                                "required": [
+                                                    "AppDisplayName",
+                                                    "AppId",
+                                                    "AlreadyExpired",
+                                                    "SecretId",
+                                                    "CertificateID",
+                                                    "Expires"
+                                                ],
+                                                "type": "object"
+                                            }
+                                        ],
+                                        "type": "array"
+                                    }
+                                },
+                                "required": [
+                                    "results"
+                                ]
+                            }
+                        },
+                        "runAfter": {
+                            "Get_blob_content_from_Job_Output": [
+                                "Succeeded"
+                            ]
+                        },
+                        "type": "ParseJson"
+                    },
+                    "Parse_JSON_from_Job_output": {
+                        "inputs": {
+                            "content": "@concat('{',split(body('Get_job_output_RB-99-NordicsVirtualSummit'),'{')[1])",
+                            "schema": {
+                                "properties": {
+                                    "blobfile": {
+                                        "type": "string"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        },
+                        "runAfter": {
+                            "Get_job_output_RB-99-NordicsVirtualSummit": [
+                                "Succeeded"
+                            ]
+                        },
+                        "type": "ParseJson"
+                    }
+                },
+                "runAfter": {
+                    "Compose_Variables": [
+                        "Succeeded"
+                    ]
+                },
+                "type": "Scope"
+            }
+        },
+        "contentVersion": "1.0.0.0",
+        "outputs": {},
+        "parameters": {
+            "$connections": {
+                "defaultValue": {},
+                "type": "Object"
+            }
+        },
+        "triggers": {
+            "Recurrence": {
+                "evaluatedRecurrence": {
+                    "frequency": "Month",
+                    "interval": 3
+                },
+                "recurrence": {
+                    "frequency": "Month",
+                    "interval": 3
+                },
+                "type": "Recurrence"
+            }
+        }
+    },
+    "parameters": {
+        "$connections": {
+            "value": {
+                "azureautomation": {
+                    "connectionId": "/subscriptions/faaeca84-60af-4e98-8846-ebf0944a5fba/resourceGroups/RG-NordicsVirtualSummit/providers/Microsoft.Web/connections/azureautomation",
+                    "connectionName": "azureautomation",
+                    "id": "/subscriptions/faaeca84-60af-4e98-8846-ebf0944a5fba/providers/Microsoft.Web/locations/westeurope/managedApis/azureautomation"
+                },
+                "azureblob": {
+                    "connectionId": "/subscriptions/faaeca84-60af-4e98-8846-ebf0944a5fba/resourceGroups/RG-NordicsVirtualSummit/providers/Microsoft.Web/connections/azureblob",
+                    "connectionName": "azureblob",
+                    "id": "/subscriptions/faaeca84-60af-4e98-8846-ebf0944a5fba/providers/Microsoft.Web/locations/westeurope/managedApis/azureblob"
+                },
+                "teams": {
+                    "connectionId": "/subscriptions/faaeca84-60af-4e98-8846-ebf0944a5fba/resourceGroups/RG-NordicsVirtualSummit/providers/Microsoft.Web/connections/teams",
+                    "connectionName": "teams",
+                    "id": "/subscriptions/faaeca84-60af-4e98-8846-ebf0944a5fba/providers/Microsoft.Web/locations/westeurope/managedApis/teams"
+                }
+            }
+        }
+    }
+}
