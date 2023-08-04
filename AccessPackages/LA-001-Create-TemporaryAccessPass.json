@@ -1,0 +1,447 @@
+{
+    "definition": {
+        "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+        "actions": {
+            "Condition": {
+                "actions": {
+                    "Condition_2": {
+                        "actions": {},
+                        "expression": {
+                            "and": [
+                                {
+                                    "equals": [
+                                        "@triggerBody()?['Stage']",
+                                        "CustomExtensionConnectionTest"
+                                    ]
+                                }
+                            ]
+                        },
+                        "runAfter": {},
+                        "type": "If"
+                    }
+                },
+                "expression": {
+                    "and": [
+                        {
+                            "equals": [
+                                "@{triggerBody()?['AccessPackageCatalog']?['Id']}",
+                                "3287d6ec-504d-4237-a0b5-20ff79d1767d"
+                            ]
+                        }
+                    ]
+                },
+                "runAfter": {
+                    "Condition_-_One_Answer_need_to_be_'Yes'": [
+                        "Succeeded"
+                    ]
+                },
+                "type": "If"
+            },
+            "Condition_-_One_Answer_need_to_be_'Yes'": {
+                "actions": {
+                    "HTTP_-_Request_TAP_for_user": {
+                        "inputs": {
+                            "authentication": {
+                                "audience": "https://graph.microsoft.com",
+                                "type": "ManagedServiceIdentity"
+                            },
+                            "body": {
+                                "isUsableOnce": false,
+                                "lifetimeInMinutes": 2870
+                            },
+                            "headers": {
+                                "Content-Type": "application/json"
+                            },
+                            "method": "POST",
+                            "uri": "https://graph.microsoft.com/beta/users/@{triggerBody()?['Assignment']?['Target']?['ObjectId']}/authentication/temporaryAccessPassMethods"
+                        },
+                        "runAfter": {
+                            "Parse_JSON_-_Retrieve_user_details": [
+                                "Succeeded"
+                            ]
+                        },
+                        "type": "Http"
+                    },
+                    "HTTP_-_Retrieve_User_Details": {
+                        "inputs": {
+                            "authentication": {
+                                "audience": "https://graph.microsoft.com",
+                                "type": "ManagedServiceIdentity"
+                            },
+                            "method": "GET",
+                            "uri": "https://graph.microsoft.com/beta/users/@{triggerBody()?['Assignment']?['Target']?['ObjectId']}"
+                        },
+                        "runAfter": {},
+                        "type": "Http"
+                    },
+                    "Parse_JSON_-_Request_TAP_for_user": {
+                        "inputs": {
+                            "content": "@body('HTTP_-_Request_TAP_for_user')",
+                            "schema": {
+                                "properties": {
+                                    "@@odata.context": {
+                                        "type": "string"
+                                    },
+                                    "createdDateTime": {
+                                        "type": "string"
+                                    },
+                                    "id": {
+                                        "type": "string"
+                                    },
+                                    "isUsable": {
+                                        "type": "boolean"
+                                    },
+                                    "isUsableOnce": {
+                                        "type": "boolean"
+                                    },
+                                    "lifetimeInMinutes": {
+                                        "type": "integer"
+                                    },
+                                    "methodUsabilityReason": {
+                                        "type": "string"
+                                    },
+                                    "startDateTime": {
+                                        "type": "string"
+                                    },
+                                    "temporaryAccessPass": {
+                                        "type": "string"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        },
+                        "runAfter": {
+                            "HTTP_-_Request_TAP_for_user": [
+                                "Succeeded"
+                            ]
+                        },
+                        "type": "ParseJson"
+                    },
+                    "Parse_JSON_-_Retrieve_user_details": {
+                        "inputs": {
+                            "content": "@body('HTTP_-_Retrieve_User_Details')",
+                            "schema": {
+                                "properties": {
+                                    "@@odata.context": {},
+                                    "accountEnabled": {},
+                                    "ageGroup": {},
+                                    "assignedLicenses": {},
+                                    "assignedPlans": {},
+                                    "businessPhones": {},
+                                    "city": {},
+                                    "companyName": {},
+                                    "consentProvidedForMinor": {},
+                                    "country": {},
+                                    "createdDateTime": {},
+                                    "creationType": {},
+                                    "deletedDateTime": {},
+                                    "department": {},
+                                    "deviceKeys": {},
+                                    "displayName": {},
+                                    "employeeHireDate": {},
+                                    "employeeId": {},
+                                    "employeeLeaveDateTime": {},
+                                    "employeeOrgData": {},
+                                    "employeeType": {},
+                                    "externalUserConvertedOn": {},
+                                    "externalUserState": {},
+                                    "externalUserStateChangeDateTime": {},
+                                    "faxNumber": {},
+                                    "givenName": {},
+                                    "id": {},
+                                    "imAddresses": {},
+                                    "infoCatalogs": {},
+                                    "isLicenseReconciliationNeeded": {},
+                                    "isManagementRestricted": {},
+                                    "isResourceAccount": {},
+                                    "jobTitle": {},
+                                    "legalAgeGroupClassification": {},
+                                    "mail": {},
+                                    "mailNickname": {},
+                                    "mobilePhone": {},
+                                    "officeLocation": {},
+                                    "onPremisesDistinguishedName": {},
+                                    "onPremisesDomainName": {},
+                                    "onPremisesExtensionAttributes": {
+                                        "properties": {
+                                            "extensionAttribute1": {},
+                                            "extensionAttribute10": {},
+                                            "extensionAttribute11": {},
+                                            "extensionAttribute12": {},
+                                            "extensionAttribute13": {},
+                                            "extensionAttribute14": {},
+                                            "extensionAttribute15": {},
+                                            "extensionAttribute2": {},
+                                            "extensionAttribute3": {},
+                                            "extensionAttribute4": {},
+                                            "extensionAttribute5": {},
+                                            "extensionAttribute6": {},
+                                            "extensionAttribute7": {},
+                                            "extensionAttribute8": {},
+                                            "extensionAttribute9": {}
+                                        },
+                                        "type": "object"
+                                    },
+                                    "onPremisesImmutableId": {},
+                                    "onPremisesLastSyncDateTime": {},
+                                    "onPremisesObjectIdentifier": {},
+                                    "onPremisesProvisioningErrors": {},
+                                    "onPremisesSamAccountName": {},
+                                    "onPremisesSecurityIdentifier": {},
+                                    "onPremisesSyncEnabled": {},
+                                    "onPremisesUserPrincipalName": {},
+                                    "otherMails": {},
+                                    "passwordPolicies": {},
+                                    "postalCode": {},
+                                    "preferredDataLocation": {},
+                                    "preferredLanguage": {},
+                                    "provisionedPlans": {},
+                                    "proxyAddresses": {},
+                                    "refreshTokensValidFromDateTime": {},
+                                    "securityIdentifier": {},
+                                    "serviceProvisioningErrors": {},
+                                    "showInAddressList": {},
+                                    "signInSessionsValidFromDateTime": {},
+                                    "state": {},
+                                    "streetAddress": {},
+                                    "surname": {},
+                                    "usageLocation": {},
+                                    "userPrincipalName": {},
+                                    "userType": {}
+                                },
+                                "type": "object"
+                            }
+                        },
+                        "runAfter": {
+                            "HTTP_-_Retrieve_User_Details": [
+                                "Succeeded"
+                            ]
+                        },
+                        "type": "ParseJson"
+                    },
+                    "Send_TAP_to_end_user": {
+                        "inputs": {
+                            "body": {
+                                "Body": "<p>Hi @{body('Parse_JSON_-_Retrieve_user_details')?['givenName']},<br>\n<br>\nYou recently requested a Temporary Access Pass via <a href=\"https://myaccess.microsoft.com/\">My Access</a>, this request has now been approved!<br>\n<br>\nYour Temporary Access Pass is: @{body('Parse_JSON_-_Request_TAP_for_user')?['temporaryAccessPass']}<br>\n<br>\nYou can use the Temporary Access Pass to enroll for MFA or Passwordless Methods via <a href=\"https://aka.ms/mysecurityinfo\">My Security Info</a> .<br>\n<br>\nPlease be aware that from the moment you received this email the Temporary Access Pass is valid for 48 hours.<br>\n<br>\nKind Regards,<br>\n<br>\nIT Team Identity Man</p>",
+                                "Importance": "Normal",
+                                "Subject": "Your Temporary Access Pass request is ready!",
+                                "To": "@{body('Parse_JSON_-_Retrieve_user_details')?['mail']}"
+                            },
+                            "host": {
+                                "connection": {
+                                    "name": "@parameters('$connections')['office365']['connectionId']"
+                                }
+                            },
+                            "method": "post",
+                            "path": "/v2/Mail"
+                        },
+                        "runAfter": {
+                            "Parse_JSON_-_Request_TAP_for_user": [
+                                "Succeeded"
+                            ]
+                        },
+                        "type": "ApiConnection"
+                    }
+                },
+                "expression": {
+                    "or": [
+                        {
+                            "equals": [
+                                "@triggerBody()?['Answers'][1].value",
+                                "Yes"
+                            ]
+                        },
+                        {
+                            "equals": [
+                                "@triggerBody()?['Answers'][0].value",
+                                "Yes"
+                            ]
+                        }
+                    ]
+                },
+                "runAfter": {},
+                "type": "If"
+            }
+        },
+        "contentVersion": "1.0.0.0",
+        "outputs": {},
+        "parameters": {
+            "$connections": {
+                "defaultValue": {},
+                "type": "Object"
+            }
+        },
+        "triggers": {
+            "manual": {
+                "inputs": {
+                    "schema": {
+                        "properties": {
+                            "AccessPackage": {
+                                "properties": {
+                                    "Description": {
+                                        "description": "AccessPackage-Description",
+                                        "type": "string"
+                                    },
+                                    "DisplayName": {
+                                        "description": "AccessPackage-DisplayName",
+                                        "type": "string"
+                                    },
+                                    "Id": {
+                                        "description": "AccessPackage-Id",
+                                        "type": "string"
+                                    }
+                                },
+                                "type": "object"
+                            },
+                            "AccessPackageAssignmentRequestId": {
+                                "type": "string"
+                            },
+                            "AccessPackageCatalog": {
+                                "properties": {
+                                    "Description": {
+                                        "description": "AccessPackageCatalog-Description",
+                                        "type": "string"
+                                    },
+                                    "DisplayName": {
+                                        "description": "AccessPackageCatalog-DisplayName",
+                                        "type": "string"
+                                    },
+                                    "Id": {
+                                        "description": "AccessPackageCatalog-Id",
+                                        "type": "string"
+                                    }
+                                },
+                                "type": "object"
+                            },
+                            "Answers": {
+                                "type": "array"
+                            },
+                            "Assignment": {
+                                "properties": {
+                                    "AssignmentPolicy": {
+                                        "properties": {
+                                            "DisplayName": {
+                                                "description": "AssignmentPolicy-DisplayName",
+                                                "type": "string"
+                                            },
+                                            "Id": {
+                                                "description": "AssignmentPolicy-Id",
+                                                "type": "string"
+                                            }
+                                        },
+                                        "type": "object"
+                                    },
+                                    "Id": {
+                                        "description": "Assignment-Id",
+                                        "type": "string"
+                                    },
+                                    "State": {
+                                        "description": "Assignment-State",
+                                        "type": "string"
+                                    },
+                                    "Status": {
+                                        "description": "Assignment-Status",
+                                        "type": "string"
+                                    },
+                                    "Target": {
+                                        "properties": {
+                                            "ConnectedOrganization": {
+                                                "properties": {
+                                                    "Description": {
+                                                        "description": "Assignment-Target-ConnectedOrganization-Description",
+                                                        "type": "string"
+                                                    },
+                                                    "DisplayName": {
+                                                        "description": "Assignment-Target-ConnectedOrganization-DisplayName",
+                                                        "type": "string"
+                                                    },
+                                                    "Id": {
+                                                        "description": "Assignment-Target-ConnectedOrganization-Id",
+                                                        "type": "string"
+                                                    }
+                                                },
+                                                "type": "object"
+                                            },
+                                            "DisplayName": {
+                                                "description": "Assignment-Target-DisplayName",
+                                                "type": "string"
+                                            },
+                                            "Id": {
+                                                "description": "Assignment-Target-Id",
+                                                "type": "string"
+                                            },
+                                            "ObjectId": {
+                                                "description": "Assignment-Target-ObjectId",
+                                                "type": "string"
+                                            }
+                                        },
+                                        "type": "object"
+                                    }
+                                },
+                                "type": "object"
+                            },
+                            "CallbackConfiguration": {
+                                "properties": {
+                                    "DurationBeforeTimeout": {
+                                        "type": "string"
+                                    }
+                                },
+                                "type": "object"
+                            },
+                            "CallbackUriPath": {
+                                "type": "string"
+                            },
+                            "CustomExtensionStageInstanceId": {
+                                "type": "string"
+                            },
+                            "RequestType": {
+                                "type": "string"
+                            },
+                            "Requestor": {
+                                "properties": {
+                                    "DisplayName": {
+                                        "description": "Requestor-DisplayName",
+                                        "type": "string"
+                                    },
+                                    "Id": {
+                                        "description": "Requestor-Id",
+                                        "type": "string"
+                                    },
+                                    "ObjectId": {
+                                        "description": "Requestor-ObjectId",
+                                        "type": "string"
+                                    }
+                                },
+                                "type": "object"
+                            },
+                            "Stage": {
+                                "type": "string"
+                            },
+                            "State": {
+                                "type": "string"
+                            },
+                            "Status": {
+                                "type": "string"
+                            }
+                        },
+                        "type": "object"
+                    }
+                },
+                "kind": "Http",
+                "operationOptions": "IncludeAuthorizationHeadersInOutputs",
+                "type": "Request"
+            }
+        }
+    },
+    "parameters": {
+        "$connections": {
+            "value": {
+                "office365": {
+                    "connectionId": "/subscriptions/faaeca84-60af-4e98-8846-ebf0944a5fba/resourceGroups/RG-Generic/providers/Microsoft.Web/connections/office365",
+                    "connectionName": "office365",
+                    "id": "/subscriptions/faaeca84-60af-4e98-8846-ebf0944a5fba/providers/Microsoft.Web/locations/westeurope/managedApis/office365"
+                }
+            }
+        }
+    }
+}
