@@ -1,0 +1,508 @@
+{
+    "definition": {
+        "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+        "actions": {
+            "Create_Job_-_RB-001-TransformHRUserInputforAPI": {
+                "inputs": {
+                    "body": {
+                        "properties": {
+                            "parameters": {
+                                "UserDetails": "@body('Parse_JSON_-__Get_BambooHR_Employee_Info_Output')?['employees']"
+                            }
+                        }
+                    },
+                    "host": {
+                        "connection": {
+                            "name": "@parameters('$connections')['azureautomation']['connectionId']"
+                        }
+                    },
+                    "method": "put",
+                    "path": "/subscriptions/@{encodeURIComponent('faaeca84-60af-4e98-8846-ebf0944a5fba')}/resourceGroups/@{encodeURIComponent('rg-mwf-ipa-runbooks-p-weu-01')}/providers/Microsoft.Automation/automationAccounts/@{encodeURIComponent('aa-mwf-ipa-runbooks-p-weu-01')}/jobs",
+                    "queries": {
+                        "runbookName": "RB-001-TransformHRUserInputforAPI",
+                        "wait": true,
+                        "x-ms-api-version": "2015-10-31"
+                    }
+                },
+                "runAfter": {
+                    "Parse_JSON_-__Get_BambooHR_Employee_Info_Output": [
+                        "Succeeded"
+                    ]
+                },
+                "type": "ApiConnection"
+            },
+            "For_each_-_File_found_in_iparun-date_directory": {
+                "actions": {
+                    "Get_blob_content_-_JSON_to_POST_to_API": {
+                        "inputs": {
+                            "host": {
+                                "connection": {
+                                    "name": "@parameters('$connections')['azureblob']['connectionId']"
+                                }
+                            },
+                            "method": "get",
+                            "path": "/v2/datasets/@{encodeURIComponent(encodeURIComponent('stmwfipapweuukreciy'))}/files/@{encodeURIComponent(encodeURIComponent(items('For_each_-_File_found_in_iparun-date_directory')['Path']))}/content",
+                            "queries": {
+                                "inferContentType": true
+                            }
+                        },
+                        "runAfter": {},
+                        "type": "ApiConnection"
+                    },
+                    "HTTP_-_Post_to_Entra_ID_Provisioning_API": {
+                        "inputs": {
+                            "authentication": {
+                                "audience": "https://graph.microsoft.com",
+                                "type": "ManagedServiceIdentity"
+                            },
+                            "body": "@body('Get_blob_content_-_JSON_to_POST_to_API')",
+                            "headers": {
+                                "Content-Type": "application/scim+json"
+                            },
+                            "method": "POST",
+                            "uri": "@variables('EntraIDProvisioningAPIEndpoint')"
+                        },
+                        "runAfter": {
+                            "Get_blob_content_-_JSON_to_POST_to_API": [
+                                "Succeeded"
+                            ]
+                        },
+                        "type": "Http"
+                    }
+                },
+                "foreach": "@body('Parse_JSON_-_Lists_Blob_Files_Within_Container_iparun-date')",
+                "runAfter": {
+                    "Parse_JSON_-_Lists_Blob_Files_Within_Container_iparun-date": [
+                        "Succeeded"
+                    ]
+                },
+                "type": "Foreach"
+            },
+            "Get_Job_Output_-_RB-001-TransformHRUserInputforAPI": {
+                "inputs": {
+                    "host": {
+                        "connection": {
+                            "name": "@parameters('$connections')['azureautomation']['connectionId']"
+                        }
+                    },
+                    "method": "get",
+                    "path": "/subscriptions/@{encodeURIComponent('faaeca84-60af-4e98-8846-ebf0944a5fba')}/resourceGroups/@{encodeURIComponent('rg-mwf-ipa-runbooks-p-weu-01')}/providers/Microsoft.Automation/automationAccounts/@{encodeURIComponent('aa-mwf-ipa-runbooks-p-weu-01')}/jobs/@{encodeURIComponent(body('Create_Job_-_RB-001-TransformHRUserInputforAPI')?['properties']?['jobId'])}/output",
+                    "queries": {
+                        "x-ms-api-version": "2015-10-31"
+                    }
+                },
+                "runAfter": {
+                    "Create_Job_-_RB-001-TransformHRUserInputforAPI": [
+                        "Succeeded"
+                    ]
+                },
+                "type": "ApiConnection"
+            },
+            "Get_secret_-_BambooHR": {
+                "inputs": {
+                    "host": {
+                        "connection": {
+                            "name": "@parameters('$connections')['keyvault']['connectionId']"
+                        }
+                    },
+                    "method": "get",
+                    "path": "/secrets/@{encodeURIComponent('BambooSecret')}/value"
+                },
+                "runAfter": {
+                    "Initialize_variable_-_EntraIDProvisioningAPIEndpoint": [
+                        "Succeeded"
+                    ]
+                },
+                "type": "ApiConnection"
+            },
+            "HTTP_-_Get_BambooHR_Employee_Info": {
+                "inputs": {
+                    "authentication": {
+                        "password": "notrequired",
+                        "type": "Basic",
+                        "username": "@body('Get_secret_-_BambooHR')?['value']"
+                    },
+                    "headers": {
+                        "accept": "application/json"
+                    },
+                    "method": "GET",
+                    "uri": "https://api.bamboohr.com/api/gateway.php/jacobsaa/v1/employees/directory"
+                },
+                "runAfter": {
+                    "Get_secret_-_BambooHR": [
+                        "Succeeded"
+                    ]
+                },
+                "type": "Http"
+            },
+            "Initialize_variable_-_EntraIDProvisioningAPIEndpoint": {
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "EntraIDProvisioningAPIEndpoint",
+                            "type": "string",
+                            "value": "https://graph.microsoft.com/beta/servicePrincipals/5c041b9f-89da-447a-a750-2c20d4102643/synchronization/jobs/API2AAD.ad7aaf9de4784d3f99aace450535d9cc.a4d7d23e-5dc2-40a3-9814-be87acbe320f/bulkUpload"
+                        }
+                    ]
+                },
+                "runAfter": {},
+                "type": "InitializeVariable"
+            },
+            "Lists_Blob_Files_-_Within_Container_iparun-date": {
+                "inputs": {
+                    "host": {
+                        "connection": {
+                            "name": "@parameters('$connections')['azureblob']['connectionId']"
+                        }
+                    },
+                    "method": "get",
+                    "path": "/v2/datasets/@{encodeURIComponent(encodeURIComponent('stmwfipapweuukreciy'))}/foldersV2/@{encodeURIComponent(encodeURIComponent(body('Parse_JSON_-_Get_Job_Output_RB-001-TransformHRUserInputforAPI')?['containername']))}",
+                    "queries": {
+                        "nextPageMarker": "",
+                        "useFlatListing": false
+                    }
+                },
+                "runAfter": {
+                    "Parse_JSON_-_Get_Job_Output_RB-001-TransformHRUserInputforAPI": [
+                        "Succeeded"
+                    ]
+                },
+                "type": "ApiConnection"
+            },
+            "Parse_JSON_-_Get_Job_Output_RB-001-TransformHRUserInputforAPI": {
+                "inputs": {
+                    "content": "@body('Get_Job_Output_-_RB-001-TransformHRUserInputforAPI')",
+                    "schema": {
+                        "properties": {
+                            "containername": {
+                                "type": "string"
+                            }
+                        },
+                        "type": "object"
+                    }
+                },
+                "runAfter": {
+                    "Get_Job_Output_-_RB-001-TransformHRUserInputforAPI": [
+                        "Succeeded"
+                    ]
+                },
+                "type": "ParseJson"
+            },
+            "Parse_JSON_-_Lists_Blob_Files_Within_Container_iparun-date": {
+                "inputs": {
+                    "content": "@body('Lists_Blob_Files_-_Within_Container_iparun-date')?['value']",
+                    "schema": {
+                        "items": {
+                            "properties": {
+                                "DisplayName": {
+                                    "type": "string"
+                                },
+                                "ETag": {
+                                    "type": "string"
+                                },
+                                "FileLocator": {
+                                    "type": "string"
+                                },
+                                "Id": {
+                                    "type": "string"
+                                },
+                                "IsFolder": {
+                                    "type": "boolean"
+                                },
+                                "LastModified": {
+                                    "type": "string"
+                                },
+                                "LastModifiedBy": {},
+                                "MediaType": {
+                                    "type": "string"
+                                },
+                                "Name": {
+                                    "type": "string"
+                                },
+                                "Path": {
+                                    "type": "string"
+                                },
+                                "Size": {
+                                    "type": "integer"
+                                }
+                            },
+                            "required": [
+                                "Id",
+                                "Name",
+                                "DisplayName",
+                                "Path",
+                                "LastModified",
+                                "Size",
+                                "MediaType",
+                                "IsFolder",
+                                "ETag",
+                                "FileLocator",
+                                "LastModifiedBy"
+                            ],
+                            "type": "object"
+                        },
+                        "type": "array"
+                    }
+                },
+                "runAfter": {
+                    "Lists_Blob_Files_-_Within_Container_iparun-date": [
+                        "Succeeded"
+                    ]
+                },
+                "type": "ParseJson"
+            },
+            "Parse_JSON_-__Get_BambooHR_Employee_Info_Output": {
+                "inputs": {
+                    "content": "@body('HTTP_-_Get_BambooHR_Employee_Info')",
+                    "schema": {
+                        "properties": {
+                            "employees": {
+                                "items": {
+                                    "properties": {
+                                        "canUploadPhoto": {
+                                            "type": [
+                                                "integer",
+                                                "null"
+                                            ]
+                                        },
+                                        "department": {
+                                            "type": [
+                                                "string",
+                                                "null"
+                                            ]
+                                        },
+                                        "displayName": {
+                                            "type": [
+                                                "string",
+                                                "null"
+                                            ]
+                                        },
+                                        "division": {
+                                            "type": [
+                                                "string",
+                                                "null"
+                                            ]
+                                        },
+                                        "firstName": {
+                                            "type": [
+                                                "string",
+                                                "null"
+                                            ]
+                                        },
+                                        "id": {
+                                            "type": [
+                                                "string",
+                                                "null"
+                                            ]
+                                        },
+                                        "instagram": {
+                                            "type": [
+                                                "string",
+                                                "null"
+                                            ]
+                                        },
+                                        "jobTitle": {
+                                            "type": [
+                                                "string",
+                                                "null"
+                                            ]
+                                        },
+                                        "lastName": {
+                                            "type": [
+                                                "string",
+                                                "null"
+                                            ]
+                                        },
+                                        "linkedIn": {
+                                            "type": [
+                                                "string",
+                                                "null"
+                                            ]
+                                        },
+                                        "location": {
+                                            "type": [
+                                                "string",
+                                                "null"
+                                            ]
+                                        },
+                                        "mobilePhone": {
+                                            "type": [
+                                                "string",
+                                                "null"
+                                            ]
+                                        },
+                                        "photoUploaded": {
+                                            "type": [
+                                                "boolean",
+                                                "null"
+                                            ]
+                                        },
+                                        "photoUrl": {
+                                            "type": [
+                                                "string",
+                                                "null"
+                                            ]
+                                        },
+                                        "preferredName": {},
+                                        "pronouns": {},
+                                        "supervisor": {
+                                            "type": [
+                                                "string",
+                                                "null"
+                                            ]
+                                        },
+                                        "workEmail": {
+                                            "type": [
+                                                "string",
+                                                "null"
+                                            ]
+                                        },
+                                        "workPhone": {
+                                            "type": [
+                                                "string",
+                                                "null"
+                                            ]
+                                        },
+                                        "workPhoneExtension": {
+                                            "type": [
+                                                "string",
+                                                "null"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "id",
+                                        "displayName",
+                                        "firstName",
+                                        "lastName",
+                                        "preferredName",
+                                        "jobTitle",
+                                        "workPhone",
+                                        "mobilePhone",
+                                        "workEmail",
+                                        "department",
+                                        "location",
+                                        "division",
+                                        "linkedIn",
+                                        "instagram",
+                                        "pronouns",
+                                        "workPhoneExtension",
+                                        "supervisor",
+                                        "photoUploaded",
+                                        "canUploadPhoto"
+                                    ],
+                                    "type": "object"
+                                },
+                                "type": "array"
+                            },
+                            "fields": {
+                                "items": {
+                                    "properties": {
+                                        "id": {
+                                            "type": "string"
+                                        },
+                                        "name": {
+                                            "type": "string"
+                                        },
+                                        "type": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "id",
+                                        "type",
+                                        "name"
+                                    ],
+                                    "type": "object"
+                                },
+                                "type": "array"
+                            }
+                        },
+                        "type": "object"
+                    }
+                },
+                "runAfter": {
+                    "HTTP_-_Get_BambooHR_Employee_Info": [
+                        "Succeeded"
+                    ]
+                },
+                "runtimeConfiguration": {
+                    "staticResult": {
+                        "name": "Parse_JSON_AFAS_Output0",
+                        "staticResultOptions": "Disabled"
+                    }
+                },
+                "type": "ParseJson"
+            }
+        },
+        "contentVersion": "1.0.0.0",
+        "outputs": {},
+        "parameters": {
+            "$connections": {
+                "defaultValue": {},
+                "type": "Object"
+            }
+        },
+        "staticResults": {
+            "Parse_JSON_AFAS_Output0": {
+                "outputs": {
+                    "body": ""
+                },
+                "status": "Succeeded"
+            }
+        },
+        "triggers": {
+            "Recurrence": {
+                "evaluatedRecurrence": {
+                    "frequency": "Hour",
+                    "interval": 1,
+                    "startTime": "2023-07-24T00:30:00Z",
+                    "timeZone": "W. Europe Standard Time"
+                },
+                "recurrence": {
+                    "frequency": "Hour",
+                    "interval": 1,
+                    "startTime": "2023-07-24T00:30:00Z",
+                    "timeZone": "W. Europe Standard Time"
+                },
+                "type": "Recurrence"
+            }
+        }
+    },
+    "parameters": {
+        "$connections": {
+            "value": {
+                "azureautomation": {
+                    "connectionId": "/subscriptions/faaeca84-60af-4e98-8846-ebf0944a5fba/resourceGroups/rg-mwf-ipa-core-p-weu-01/providers/Microsoft.Web/connections/azureautomation",
+                    "connectionName": "azureautomation",
+                    "connectionProperties": {
+                        "authentication": {
+                            "type": "ManagedServiceIdentity"
+                        }
+                    },
+                    "id": "/subscriptions/faaeca84-60af-4e98-8846-ebf0944a5fba/providers/Microsoft.Web/locations/westeurope/managedApis/azureautomation"
+                },
+                "azureblob": {
+                    "connectionId": "/subscriptions/faaeca84-60af-4e98-8846-ebf0944a5fba/resourceGroups/rg-mwf-ipa-core-p-weu-01/providers/Microsoft.Web/connections/azureblob",
+                    "connectionName": "azureblob",
+                    "connectionProperties": {
+                        "authentication": {
+                            "type": "ManagedServiceIdentity"
+                        }
+                    },
+                    "id": "/subscriptions/faaeca84-60af-4e98-8846-ebf0944a5fba/providers/Microsoft.Web/locations/westeurope/managedApis/azureblob"
+                },
+                "keyvault": {
+                    "connectionId": "/subscriptions/faaeca84-60af-4e98-8846-ebf0944a5fba/resourceGroups/rg-mwf-ipa-core-p-weu-01/providers/Microsoft.Web/connections/keyvault",
+                    "connectionName": "keyvault",
+                    "connectionProperties": {
+                        "authentication": {
+                            "type": "ManagedServiceIdentity"
+                        }
+                    },
+                    "id": "/subscriptions/faaeca84-60af-4e98-8846-ebf0944a5fba/providers/Microsoft.Web/locations/westeurope/managedApis/keyvault"
+                }
+            }
+        }
+    }
+}
