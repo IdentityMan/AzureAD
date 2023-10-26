@@ -757,19 +757,7 @@ $StorageAccountName = Get-AutomationVariable -Name 'StorageAccountName'
 $ResourceGroupName = Get-AutomationVariable -Name 'ResourceGroupName'
 $datetimerun = Get-Date -Format "yyyyMMddHHmm"
 $DefaultAccountState = "Inactive"
-$ProvisioningModel = "AAD"
-
-#Create manager search table
-$ManagerSearchTable = Foreach ($user in $AllUsers) {
-        #Build manager array
-        [PSCustomObject]@{
-            ID  = $user.id
-            FirstName = $user.firstName
-            LastName  = $user.lastName
-            DisplayName  = $user.displayName
-            }
-    }
-
+$ProvisioningModel = "AD"
 
 #Create ScimPayloadOutputResults
 $ScimPayloadOutputResults = Foreach ($user in $AllUsers) {
@@ -789,10 +777,6 @@ $ScimPayloadOutputResults = Foreach ($user in $AllUsers) {
         $Samaccountname = $UserID
     }
 
-    #Define ManagerID Value
-    $ManagerID = $ManagerSearchTable | Where-Object {$_.DisplayName -eq $user.supervisor} | Select-Object ID -Last 1
-    $ManagerID = $ManagerID.ID
-
     #Define UserType Value
     $UserType = if ($user.department -ne "Subcontractors") {
         "Employee"
@@ -802,14 +786,18 @@ $ScimPayloadOutputResults = Foreach ($user in $AllUsers) {
     }
 
     #Define hiredate & leavedatetime values in correct supported AD or AAD format
+    $HireDate = ""
+    $LeaveDate = ""
     if ($ProvisioningModel -eq "AD") {
-        $HireDate = Get-Date $((Get-Date).AddDays(100)) -Format 'yyyyMMddHHmmss.0Z'
-        $LeaveDate = Get-Date $((Get-Date).AddDays(-80)) -Format 'yyyyMMddHHmmss.0Z'
+        $HireDate = Get-Date $($user.HireDate) -Format 'yyyyMMddHHmmss.0Z'
+        $LeaveDate = Get-Date $($user.terminationDate) -Format 'yyyyMMddHHmmss.0Z'
     }
+    <#
     if ($ProvisioningModel -eq "AAD") {
-        $HireDate = Get-Date $((Get-Date).AddDays(100)) -Format 'yyyy-MM-ddTHH:mm:ssZ'
-        $LeaveDate = Get-Date $((Get-Date).AddDays(-80)) -Format 'yyyy-MM-ddTHH:mm:ssZ'
+        $HireDate = Get-Date $($user.HireDate) -Format 'yyyy-MM-ddTHH:mm:ssZ'
+        $LeaveDate = Get-Date $($user.terminationDate) -Format 'yyyy-MM-ddTHH:mm:ssZ'
     }
+    #>
 
     #Build array for output
     [PSCustomObject]@{
@@ -821,7 +809,7 @@ $ScimPayloadOutputResults = Foreach ($user in $AllUsers) {
         FullName = $user.displayname
         UserID = $UserID
         Email = $Email
-        ManagerID = $ManagerID
+        ManagerID = $user.supervisorEid
         HireDate = $HireDate
         LeaveDate = $LeaveDate
         Department = $user.Department
@@ -829,6 +817,7 @@ $ScimPayloadOutputResults = Foreach ($user in $AllUsers) {
         MobilePhone = $user.mobilePhone
         OfficePhone = $user.workPhone
         SamAccountName = $SamAccountName
+        ParentDistinguishedName = "OU=API-Demo,OU=Identity-Man,DC=identityman,DC=local"
     }
 }
 
