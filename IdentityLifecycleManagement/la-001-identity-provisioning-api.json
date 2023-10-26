@@ -135,13 +135,52 @@
                 },
                 "type": "Http"
             },
+            "HTTP_-_Get_BambooHR_Employee_Info_(V2)": {
+                "inputs": {
+                    "authentication": {
+                        "password": "notrequired",
+                        "type": "Basic",
+                        "username": "@body('Get_secret_-_BambooHR')?['value']"
+                    },
+                    "body": {
+                        "fields": [
+                            "DisplayName",
+                            "LastName",
+                            "FirstName",
+                            "middleName",
+                            "JobTitle",
+                            "Department",
+                            "division",
+                            "supervisorEid",
+                            "Country",
+                            "location",
+                            "homeEmail",
+                            "mobilePhone",
+                            "workPhone",
+                            "hireDate",
+                            "terminationDate"
+                        ]
+                    },
+                    "headers": {
+                        "Content-Type": "application/json"
+                    },
+                    "method": "POST",
+                    "uri": "https://api.bamboohr.com/api/gateway.php/jacobsaa/v1/reports/custom?format=JSON&onlyCurrent=false"
+                },
+                "runAfter": {
+                    "HTTP_-_Get_BambooHR_Employee_Info": [
+                        "Succeeded"
+                    ]
+                },
+                "type": "Http"
+            },
             "Initialize_variable_-_EntraIDProvisioningAPIEndpoint": {
                 "inputs": {
                     "variables": [
                         {
                             "name": "EntraIDProvisioningAPIEndpoint",
                             "type": "string",
-                            "value": "https://graph.microsoft.com/beta/servicePrincipals/5c041b9f-89da-447a-a750-2c20d4102643/synchronization/jobs/API2AAD.ad7aaf9de4784d3f99aace450535d9cc.a4d7d23e-5dc2-40a3-9814-be87acbe320f/bulkUpload"
+                            "value": "https://graph.microsoft.com/beta/servicePrincipals/9cd12299-c5db-479f-b831-d8193fa09aae/synchronization/jobs/API2AD.ad7aaf9de4784d3f99aace450535d9cc.09eca88a-f131-4013-8be1-d97c2f22b793/bulkUpload"
                         }
                     ]
                 },
@@ -253,15 +292,15 @@
             },
             "Parse_JSON_-__Get_BambooHR_Employee_Info_Output": {
                 "inputs": {
-                    "content": "@body('HTTP_-_Get_BambooHR_Employee_Info')",
+                    "content": "@body('HTTP_-_Get_BambooHR_Employee_Info_(V2)')",
                     "schema": {
                         "properties": {
                             "employees": {
                                 "items": {
                                     "properties": {
-                                        "canUploadPhoto": {
+                                        "country": {
                                             "type": [
-                                                "integer",
+                                                "string",
                                                 "null"
                                             ]
                                         },
@@ -289,13 +328,14 @@
                                                 "null"
                                             ]
                                         },
-                                        "id": {
+                                        "hireDate": {
                                             "type": [
                                                 "string",
                                                 "null"
                                             ]
                                         },
-                                        "instagram": {
+                                        "homeEmail": {},
+                                        "id": {
                                             "type": [
                                                 "string",
                                                 "null"
@@ -313,13 +353,13 @@
                                                 "null"
                                             ]
                                         },
-                                        "linkedIn": {
+                                        "location": {
                                             "type": [
                                                 "string",
                                                 "null"
                                             ]
                                         },
-                                        "location": {
+                                        "middleName": {
                                             "type": [
                                                 "string",
                                                 "null"
@@ -331,27 +371,19 @@
                                                 "null"
                                             ]
                                         },
-                                        "photoUploaded": {
-                                            "type": [
-                                                "boolean",
-                                                "null"
-                                            ]
-                                        },
-                                        "photoUrl": {
-                                            "type": [
-                                                "string",
-                                                "null"
-                                            ]
-                                        },
-                                        "preferredName": {},
-                                        "pronouns": {},
                                         "supervisor": {
                                             "type": [
                                                 "string",
                                                 "null"
                                             ]
                                         },
-                                        "workEmail": {
+                                        "supervisorEid": {
+                                            "type": [
+                                                "string",
+                                                "null"
+                                            ]
+                                        },
+                                        "terminationDate": {
                                             "type": [
                                                 "string",
                                                 "null"
@@ -362,34 +394,24 @@
                                                 "string",
                                                 "null"
                                             ]
-                                        },
-                                        "workPhoneExtension": {
-                                            "type": [
-                                                "string",
-                                                "null"
-                                            ]
                                         }
                                     },
                                     "required": [
                                         "id",
                                         "displayName",
-                                        "firstName",
                                         "lastName",
-                                        "preferredName",
+                                        "firstName",
+                                        "middleName",
                                         "jobTitle",
-                                        "workPhone",
-                                        "mobilePhone",
-                                        "workEmail",
                                         "department",
-                                        "location",
                                         "division",
-                                        "linkedIn",
-                                        "instagram",
-                                        "pronouns",
-                                        "workPhoneExtension",
-                                        "supervisor",
-                                        "photoUploaded",
-                                        "canUploadPhoto"
+                                        "country",
+                                        "location",
+                                        "homeEmail",
+                                        "mobilePhone",
+                                        "workPhone",
+                                        "hireDate",
+                                        "terminationDate"
                                     ],
                                     "type": "object"
                                 },
@@ -416,13 +438,16 @@
                                     "type": "object"
                                 },
                                 "type": "array"
+                            },
+                            "title": {
+                                "type": "string"
                             }
                         },
                         "type": "object"
                     }
                 },
                 "runAfter": {
-                    "HTTP_-_Get_BambooHR_Employee_Info": [
+                    "HTTP_-_Get_BambooHR_Employee_Info_(V2)": [
                         "Succeeded"
                     ]
                 },
