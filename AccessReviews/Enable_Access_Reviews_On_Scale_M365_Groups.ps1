@@ -1,7 +1,7 @@
-﻿#Configure tenant variables
+﻿#Configure tenant variables based on your own service pricipal or use a managed identity (permissions required for the script below are AccessReview.ReadWrite.All & Group.Read.All
 $AppClientId = "4ec1aa79-15c7-4365-a40e-c9f70cf858f9"
 $TenantId = "ad7aaf9d-e478-4d3f-99aa-ce450535d9cc"
-$ClientSecret = "3So8Q~jeh~_d7.j~yRhLK9zZFks9dhtSgFSQOcgs"
+$ClientSecret = "xxxxxxxxxxxxxxxxxxx"
 
 #Configure connection to Graph API and make sure to retrieve access token
 $RequestBody = @{client_id=$AppClientId;client_secret=$ClientSecret;grant_type="client_credentials";scope="https://graph.microsoft.com/.default";}
