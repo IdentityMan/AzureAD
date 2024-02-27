@@ -14,70 +14,6 @@ $headers = @{'Content-Type'="application\json";'Authorization'="Bearer $AccessTo
 ###################################################
 
 Function Build-AccessReviewRequestBody($id,$displayname,$LabelResponse) {
-    ## Configure the Access Review Settings here per Sensitivity Label.
-    ## These settings will be used later on to build the requestbody on group input like ID, DisplayName and Label.
-    if ($LabelResponse -eq "Default") {
-        $accessReviewBody = @"
-{
-    "displayName": "the group membership and access to the group $displayname ",
-    "descriptionForAdmins": "the group membership and access to the group $displayname ",
-    "descriptionForReviewers": "the group membership and access to the group $displayname ",
-    "scope": {
-        "query": "/groups/$id/transitiveMembers",
-        "queryType": "MicrosoftGraph"
-    },
-    "instanceEnumerationScope": {
-        "query": "/groups/$id",
-        "queryType": "MicrosoftGraph"
-    },
-    "reviewers": [
-        {
-            "query": "/v1.0/groups/$id/owners",
-            "queryType": "MicrosoftGraph",
-            "queryRoot": null
-        }
-    ],
-    "settings": {
-        "mailNotificationsEnabled": true,
-        "reminderNotificationsEnabled": true,
-        "justificationRequiredOnApproval": true,
-        "defaultDecisionEnabled": true,
-        "defaultDecision": "Recommendation",
-        "instanceDurationInDays": 21,
-        "autoApplyDecisionsEnabled": false,
-        "recommendationsEnabled": true,
-        "recommendationLookBackDuration": "P30D",
-        "decisionHistoriesForReviewersEnabled": false,
-        "recurrence": {
-            "pattern": {
-                "type": "absoluteMonthly",
-                "interval": 12,
-                },
-            "range": {
-                "type": "noEnd",
-                "numberOfOccurrences": 0,
-                "recurrenceTimeZone": null,
-                "startDate": "2024-03-01",
-                "endDate": "9999-12-31"
-                }
-        },
-        "applyActions": [
-            {
-                "@odata.type": "#microsoft.graph.removeAccessApplyAction"
-            }
-        ],
-        "recommendationInsightSettings": [
-            {
-                "@odata.type": "#microsoft.graph.userLastSignInRecommendationInsightSetting",
-                "recommendationLookBackDuration": "P30D",
-                "signInScope": "tenant"
-            }
-        ]
-    }
-}
-"@
-    }
-
     ## For Confidential only review guest users each quarter and give the review (owner) 14 days time to respond.
     ## If owner doesn't respond don't take action.
     if ($LabelResponse -eq "Confidential") {
@@ -250,16 +186,21 @@ While ($ApiGroupUrl -ne $Null) {
                     $LabelResponse = Invoke-WebRequest -Method GET -Uri $ApiLabelUrl -ContentType "application\json" -Headers $headers | ConvertFrom-Json
                     $LabelResponse = $LabelResponse.assignedLabels.displayname
 
-                    #If the group does have a label applied the following section will be ran.
-                    if ($LabelResponse) {
-                        #write output to the screen, build the access review based on the function and post it to the Graph API.
-                        write-host "Microsoft 365 Group '$displayname' current has Sensitivity Label '$labelresponse' assigned, creating Access Review type $labelresponse!" -ForegroundColor Green
-                        $accessReviewBody = Build-AccessReviewRequestBody -id $id -displayname $displayname -LabelResponse $labelresponse
-                        $accessReviewCreateUrl = "https://graph.microsoft.com/beta/identityGovernance/accessReviews/definitions/"
-                        $accessReviewResponse = Invoke-RestMethod -Method Post -Uri $accessReviewCreateUrl -Body $accessReviewBody -ContentType 'application/json' -Headers $headers
-                        write-host "AR Applied for Microsoft 365 group: $displayname" -ForegroundColor Green
+                    #If the group does have a specific label applied the following section will be ran.
+                    If ($LabelResponse) {
+                        If ($LabelResponse -eq "Confidential","Highly Confidential") {
+                            #write output to the screen, build the access review based on the function and post it to the Graph API.
+                            write-host "Microsoft 365 Group '$displayname' current has Sensitivity Label '$labelresponse' assigned, creating Access Review type $labelresponse!" -ForegroundColor Green
+                            $accessReviewBody = Build-AccessReviewRequestBody -id $id -displayname $displayname -LabelResponse $labelresponse
+                            $accessReviewCreateUrl = "https://graph.microsoft.com/beta/identityGovernance/accessReviews/definitions/"
+                            $accessReviewResponse = Invoke-RestMethod -Method Post -Uri $accessReviewCreateUrl -Body $accessReviewBody -ContentType 'application/json' -Headers $headers
+                            write-host "AR Applied for Microsoft 365 group: $displayname" -ForegroundColor Green
+                        }
+                        else {
+                            #write-output
+                            Write-host "Group $displayname has Sensitivity Label 'Default' applied, skipping Access Review Creation." -ForegroundColor Yellow    
+                        }
                     }
-                    
                     #If the group does not have a label applied the following section will be ran.
                     Else {
                         #write-output
