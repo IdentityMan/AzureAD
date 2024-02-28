@@ -1,15 +1,28 @@
-﻿#Configure tenant variables based on your own service pricipal or use a managed identity (permissions required for the script below are AccessReview.ReadWrite.All & Group.Read.All
-$AppClientId = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-$TenantId = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-$ClientSecret = "xxxxxxxxxxxx"
+#Configure Managed Identity Variable for the use a managed identity (permissions required are AccessReview.ReadWrite.All & Group.Read.All
+$ManagedIdentity = $True
+If ($ManagedIdentity -ne $True) {
+    #Configure tenant variables based on your own service pricipal (permissions required are AccessReview.ReadWrite.All & Group.Read.All
+    $AppClientId = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+    $TenantId = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+    $ClientSecret = "xxxxxxxxxxxx"
 
-#Configure connection to Graph API and make sure to retrieve access token
-$RequestBody = @{client_id=$AppClientId;client_secret=$ClientSecret;grant_type="client_credentials";scope="https://graph.microsoft.com/.default";}
-$OAuthResponse = Invoke-RestMethod -Method Post -Uri https://login.microsoftonline.com/$TenantId/oauth2/v2.0/token -Body $RequestBody
-$AccessToken = $OAuthResponse.access_token
+    #Configure connection to Graph API and make sure to retrieve access token
+    $RequestBody = @{client_id=$AppClientId;client_secret=$ClientSecret;grant_type="client_credentials";scope="https://graph.microsoft.com/.default";}
+    $OAuthResponse = Invoke-RestMethod -Method Post -Uri https://login.microsoftonline.com/$TenantId/oauth2/v2.0/token -Body $RequestBody 
+    $AccessToken = $OAuthResponse.access_token
 
-#Form request headers with the acquired $AccessToken
-$headers = @{'Content-Type'="application\json";'Authorization'="Bearer $AccessToken"}
+    #Form request headers with the acquired $AccessToken
+    $headers = @{'Content-Type'="application\json";'Authorization'="Bearer $AccessToken"}
+}
+else {
+    $resourceURI = "https://graph.microsoft.com"
+    $tokenAuthURI = $env:IDENTITY_ENDPOINT + "?resource=$resourceURI&api-version=2019-08-01"
+    $tokenResponse = Invoke-RestMethod -Method Get -Headers @{"X-IDENTITY-HEADER"="$env:IDENTITY_HEADER"} -Uri $tokenAuthURI
+    $AccessToken = $tokenResponse.access_token
+
+    #Form request headers with the acquired $AccessToken
+    $headers = @{'Content-Type'="application\json";'Authorization'="Bearer $AccessToken"}
+}
 
 ###################################################
 
@@ -151,7 +164,7 @@ $ApiGroupUrl = "https://graph.microsoft.com/v1.0/groups?`$filter=groupTypes/any(
 #Perform pagination if next page link (odata.nextlink) returned.
 While ($ApiGroupUrl -ne $Null) {
     #Retrieve all groups.
-    $GroupResponse = Invoke-WebRequest -Method GET -Uri $ApiGroupUrl -ContentType "application\json" -Headers $headers | ConvertFrom-Json
+    $GroupResponse = Invoke-WebRequest -Method GET -Uri $ApiGroupUrl -ContentType "application\json" -Headers $headers -UseBasicParsing | ConvertFrom-Json
 
     #If the variable $groupresponse contains a value continue.
     if($GroupResponse.value) {
@@ -165,7 +178,7 @@ While ($ApiGroupUrl -ne $Null) {
         While ($ApiReviewsUrl -ne $Null){
             
             #retrieve all Access Reviews
-            $AccessReviewsResponse = Invoke-WebRequest -Method GET -Uri $ApiReviewsUrl -ContentType "application\json" -Headers $headers | ConvertFrom-Json
+            $AccessReviewsResponse = Invoke-WebRequest -Method GET -Uri $ApiReviewsUrl -ContentType "application\json" -Headers $headers -UseBasicParsing | ConvertFrom-Json
 
             #List all groups in Azure AD which do contain an Access Review and grab their ID.
             $GroupsWithAccessReviews = $AccessReviewsResponse.value.instanceEnumerationScope.query | where {$_ -like "*/groups/*"} | ForEach-Object { ($_ -split "/groups/")[1] }
@@ -183,7 +196,7 @@ While ($ApiGroupUrl -ne $Null) {
                     
                     #Now let's retreive the label from the group (if any).
                     $ApiLabelUrl  = "https://graph.microsoft.com/beta/groups/{$id}?`$select=assignedLabels"
-                    $LabelResponse = Invoke-WebRequest -Method GET -Uri $ApiLabelUrl -ContentType "application\json" -Headers $headers | ConvertFrom-Json
+                    $LabelResponse = Invoke-WebRequest -Method GET -Uri $ApiLabelUrl -ContentType "application\json" -Headers $headers -UseBasicParsing | ConvertFrom-Json
                     $LabelResponse = $LabelResponse.assignedLabels.displayname
 
                     #If the group does have a specific label applied the following section will be ran.
@@ -191,28 +204,28 @@ While ($ApiGroupUrl -ne $Null) {
                         $AcceptableLabelResponse = @("Confidential","Highly Confidential")
                         If ($LabelResponse -in $AcceptableLabelResponse) {
                             #write output to the screen, build the access review based on the function and post it to the Graph API.
-                            write-host "Microsoft 365 Group '$displayname' current has Sensitivity Label '$labelresponse' assigned, creating Access Review type $labelresponse!" -ForegroundColor Green
+                            write-output "Microsoft 365 Group '$displayname' current has Sensitivity Label '$labelresponse' assigned, creating Access Review type $labelresponse!"
                             $accessReviewBody = Build-AccessReviewRequestBody -id $id -displayname $displayname -LabelResponse $labelresponse
                             $accessReviewCreateUrl = "https://graph.microsoft.com/beta/identityGovernance/accessReviews/definitions/"
-                            $accessReviewResponse = Invoke-RestMethod -Method Post -Uri $accessReviewCreateUrl -Body $accessReviewBody -ContentType 'application/json' -Headers $headers
-                            write-host "AR Applied for Microsoft 365 group: $displayname" -ForegroundColor Green
+                            $accessReviewResponse = Invoke-RestMethod -Method Post -Uri $accessReviewCreateUrl -Body $accessReviewBody -ContentType 'application/json' -Headers $headers -UseBasicParsing
+                            write-output "AR Applied for Microsoft 365 group: $displayname"
                         }
                         else {
                             #write-output
-                            Write-host "Group $displayname has Sensitivity Label 'Default' applied, skipping Access Review Creation." -ForegroundColor Yellow    
+                            write-output "Group $displayname has Sensitivity Label 'Default' applied, skipping Access Review Creation."
                         }
                     }
                     #If the group does not have a label applied the following section will be ran.
                     Else {
                         #write-output
-                        Write-host "Group $displayname has no Sensitivity Label applied, skipping Access Review Creation." -ForegroundColor Yellow
+                        write-output "Group $displayname has no Sensitivity Label applied, skipping Access Review Creation."
                     }
                 }
 
                 #If the group already has an access review the next section will be ran.
                 else {
                     #write-output
-                    Write-host "Group $displayname already has an Access Review Applied, skipping Access Review Creation." -ForegroundColor Cyan
+                    write-output "Group $displayname already has an Access Review Applied, skipping Access Review Creation."
                 }
 
             }
