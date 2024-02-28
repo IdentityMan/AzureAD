@@ -201,8 +201,8 @@ While ($ApiGroupUrl -ne $Null) {
 
                     #If the group does have a specific label applied the following section will be ran.
                     If ($LabelResponse) {
-                        $AcceptableLabelResponse = @("Confidential","Highly Confidential")
-                        If ($LabelResponse -in $AcceptableLabelResponse) {
+                        $AcceptLabelResponse = @("Confidential","Highly Confidential")
+                        If ($LabelResponse -in $AcceptLabelResponse) {
                             #write output to the screen, build the access review based on the function and post it to the Graph API.
                             write-output "Microsoft 365 Group '$displayname' current has Sensitivity Label '$labelresponse' assigned, creating Access Review type $labelresponse!"
                             $accessReviewBody = Build-AccessReviewRequestBody -id $id -displayname $displayname -LabelResponse $labelresponse
