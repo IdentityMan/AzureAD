@@ -63,7 +63,7 @@ Function Build-AccessReviewRequestBody($id,$displayname,$LabelResponse) {
         "recurrence": {
             "pattern": {
                 "type": "absoluteMonthly",
-                "interval": 3,
+                "interval": 6,
                 },
             "range": {
                 "type": "noEnd",
