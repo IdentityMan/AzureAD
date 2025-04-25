@@ -1,0 +1,319 @@
+{
+    "definition": {
+        "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+        "contentVersion": "1.0.0.0",
+        "triggers": {
+            "manual": {
+                "type": "Request",
+                "kind": "Http",
+                "inputs": {
+                    "schema": {
+                        "properties": {
+                            "data": {
+                                "properties": {
+                                    "callbackUriPath": {
+                                        "description": "CallbackUriPath used for Resume Action",
+                                        "title": "Data.CallbackUriPath",
+                                        "type": "string"
+                                    },
+                                    "subject": {
+                                        "properties": {
+                                            "displayName": {
+                                                "description": "DisplayName of the Subject",
+                                                "title": "Subject.DisplayName",
+                                                "type": "string"
+                                            },
+                                            "email": {
+                                                "description": "Email of the Subject",
+                                                "title": "Subject.Email",
+                                                "type": "string"
+                                            },
+                                            "id": {
+                                                "description": "Id of the Subject",
+                                                "title": "Subject.Id",
+                                                "type": "string"
+                                            },
+                                            "manager": {
+                                                "properties": {
+                                                    "displayName": {
+                                                        "description": "DisplayName parameter for Manager",
+                                                        "title": "Manager.DisplayName",
+                                                        "type": "string"
+                                                    },
+                                                    "email": {
+                                                        "description": "Mail parameter for Manager",
+                                                        "title": "Manager.Mail",
+                                                        "type": "string"
+                                                    },
+                                                    "id": {
+                                                        "description": "Id parameter for Manager",
+                                                        "title": "Manager.Id",
+                                                        "type": "string"
+                                                    }
+                                                },
+                                                "type": "object"
+                                            },
+                                            "userPrincipalName": {
+                                                "description": "UserPrincipalName of the Subject",
+                                                "title": "Subject.UserPrincipalName",
+                                                "type": "string"
+                                            }
+                                        },
+                                        "type": "object"
+                                    },
+                                    "task": {
+                                        "properties": {
+                                            "displayName": {
+                                                "description": "DisplayName for Task Object",
+                                                "title": "Task.DisplayName",
+                                                "type": "string"
+                                            },
+                                            "id": {
+                                                "description": "Id for Task Object",
+                                                "title": "Task.Id",
+                                                "type": "string"
+                                            }
+                                        },
+                                        "type": "object"
+                                    },
+                                    "taskProcessingResult": {
+                                        "properties": {
+                                            "createdDateTime": {
+                                                "description": "CreatedDateTime for TaskProcessingResult Object",
+                                                "title": "TaskProcessingResult.CreatedDateTime",
+                                                "type": "string"
+                                            },
+                                            "id": {
+                                                "description": "Id for TaskProcessingResult Object",
+                                                "title": "TaskProcessingResult.Id",
+                                                "type": "string"
+                                            }
+                                        },
+                                        "type": "object"
+                                    },
+                                    "workflow": {
+                                        "properties": {
+                                            "displayName": {
+                                                "description": "DisplayName for Workflow Object",
+                                                "title": "Workflow.DisplayName",
+                                                "type": "string"
+                                            },
+                                            "id": {
+                                                "description": "Id for Workflow Object",
+                                                "title": "Workflow.Id",
+                                                "type": "string"
+                                            },
+                                            "workflowVerson": {
+                                                "description": "WorkflowVersion for Workflow Object",
+                                                "title": "Workflow.WorkflowVersion",
+                                                "type": "integer"
+                                            }
+                                        },
+                                        "type": "object"
+                                    }
+                                },
+                                "type": "object"
+                            },
+                            "source": {
+                                "description": "Context in which an event happened",
+                                "title": "Request.Source",
+                                "type": "string"
+                            },
+                            "type": {
+                                "description": "Value describing the type of event related to the originating occurrence.",
+                                "title": "Request.Type",
+                                "type": "string"
+                            }
+                        },
+                        "type": "object"
+                    }
+                }
+            }
+        },
+        "actions": {
+            "HTTP_-_Callback": {
+                "type": "Http",
+                "inputs": {
+                    "uri": "https://graph.microsoft.com/beta@{triggerBody()?['data']?['callbackUriPath']}",
+                    "method": "POST",
+                    "body": {
+                        "data": {
+                            "operationStatus": "Completed"
+                        },
+                        "source": "sample",
+                        "type": "lifecycleEvent"
+                    },
+                    "authentication": {
+                        "audience": "https://graph.microsoft.com",
+                        "type": "ManagedServiceIdentity"
+                    }
+                },
+                "runAfter": {
+                    "For_each_-_Admin_Account_found": [
+                        "Succeeded"
+                    ]
+                }
+            },
+            "HTTP_-_Get_account_details_from_MS_Graph": {
+                "type": "Http",
+                "inputs": {
+                    "uri": "https://graph.microsoft.com/beta/users/@{triggerBody()?['data']?['subject']?['id']}?$select=id,employeeId,userPrincipalName,accountEnabled",
+                    "method": "GET",
+                    "authentication": {
+                        "type": "ManagedServiceIdentity",
+                        "audience": "https://graph.microsoft.com"
+                    }
+                },
+                "runAfter": {},
+                "runtimeConfiguration": {
+                    "contentTransfer": {
+                        "transferMode": "Chunked"
+                    }
+                }
+            },
+            "Parse_JSON_-_Get_account_details_from_MS_Graph": {
+                "type": "ParseJson",
+                "inputs": {
+                    "content": "@body('HTTP_-_Get_account_details_from_MS_Graph')",
+                    "schema": {
+                        "type": "object",
+                        "properties": {
+                            "@@odata.context": {
+                                "type": "string"
+                            },
+                            "id": {
+                                "type": "string"
+                            },
+                            "employeeId": {
+                                "type": "string"
+                            },
+                            "userPrincipalName": {
+                                "type": "string"
+                            },
+                            "accountEnabled": {
+                                "type": "boolean"
+                            }
+                        }
+                    }
+                },
+                "runAfter": {
+                    "HTTP_-_Get_account_details_from_MS_Graph": [
+                        "Succeeded"
+                    ]
+                }
+            },
+            "HTTP_-_Get_admin_details_from_MS_Graph": {
+                "type": "Http",
+                "inputs": {
+                    "uri": "https://graph.microsoft.com/v1.0/users?$filter=startswith(employeeId,'A@{body('Parse_JSON_-_Get_account_details_from_MS_Graph')?['employeeId']}')&$count=true&$select=id,employeeId,userPrincipalName,accountEnabled",
+                    "method": "GET",
+                    "headers": {
+                        "ConsistencyLevel\n": "eventual\n"
+                    },
+                    "authentication": {
+                        "type": "ManagedServiceIdentity",
+                        "audience": "https://graph.microsoft.com"
+                    }
+                },
+                "runAfter": {
+                    "Parse_JSON_-_Get_account_details_from_MS_Graph": [
+                        "Succeeded"
+                    ]
+                },
+                "runtimeConfiguration": {
+                    "contentTransfer": {
+                        "transferMode": "Chunked"
+                    }
+                }
+            },
+            "Parse_JSON_-_Get_admin_account_details_from_MS_Graph": {
+                "type": "ParseJson",
+                "inputs": {
+                    "content": "@body('HTTP_-_Get_admin_details_from_MS_Graph')",
+                    "schema": {
+                        "type": "object",
+                        "properties": {
+                            "@@odata.context": {
+                                "type": "string"
+                            },
+                            "value": {
+                                "type": "array",
+                                "items": {
+                                    "type": "object",
+                                    "properties": {
+                                        "id": {
+                                            "type": "string"
+                                        },
+                                        "employeeId": {
+                                            "type": "string"
+                                        },
+                                        "userPrincipalName": {
+                                            "type": "string"
+                                        },
+                                        "accountEnabled": {
+                                            "type": "boolean"
+                                        }
+                                    },
+                                    "required": [
+                                        "id",
+                                        "employeeId",
+                                        "userPrincipalName",
+                                        "accountEnabled"
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                },
+                "runAfter": {
+                    "HTTP_-_Get_admin_details_from_MS_Graph": [
+                        "Succeeded"
+                    ]
+                }
+            },
+            "For_each_-_Admin_Account_found": {
+                "type": "Foreach",
+                "foreach": "@outputs('Parse_JSON_-_Get_admin_account_details_from_MS_Graph')?['body']?['value']",
+                "actions": {
+                    "HTTP_-_Disable_admin_account": {
+                        "type": "Http",
+                        "inputs": {
+                            "uri": "https://graph.microsoft.com/v1.0/users/@{item()?['userPrincipalName']}",
+                            "method": "PATCH",
+                            "body": {
+                                "accountEnabled": false
+                            },
+                            "authentication": {
+                                "type": "ManagedServiceIdentity",
+                                "audience": "https://graph.microsoft.com"
+                            }
+                        },
+                        "runtimeConfiguration": {
+                            "contentTransfer": {
+                                "transferMode": "Chunked"
+                            }
+                        }
+                    }
+                },
+                "runAfter": {
+                    "Parse_JSON_-_Get_admin_account_details_from_MS_Graph": [
+                        "Succeeded"
+                    ]
+                }
+            }
+        },
+        "outputs": {},
+        "parameters": {
+            "$connections": {
+                "type": "Object",
+                "defaultValue": {}
+            }
+        }
+    },
+    "parameters": {
+        "$connections": {
+            "type": "Object",
+            "value": {}
+        }
+    }
+}
